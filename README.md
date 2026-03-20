@@ -102,6 +102,43 @@ Client → FastAPI → Normalization → Conflict Detection → MongoDB
   * patients with ≥2 conflicts in last 30 days
 
 ---
+## Database Schema & Indexing
+
+### Collections
+
+#### medication_snapshots
+
+* patient_id
+* source
+* medications (array)
+* timestamp
+
+#### conflicts
+
+* patient_id
+* type
+* medications
+* sources
+* status
+* created_at
+* resolved_at (optional)
+
+---
+
+### Indexing Rationale
+
+* Index on `patient_id` in both collections
+  → used for querying patient history and grouping
+
+* Index on `timestamp` in `medication_snapshots`
+  → used to fetch latest snapshot efficiently
+
+* Index on `status` and `sources` in `conflicts`
+  → used for unresolved conflict reporting
+
+* Index on `created_at` in `conflicts`
+  → used for time-based aggregation (last 30 days)
+
 
 ## Assumptions & Trade-offs
 

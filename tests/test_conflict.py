@@ -9,3 +9,12 @@ def test_dose_mismatch():
 
     assert len(conflicts) == 1
     assert conflicts[0]["type"] == "dose_mismatch"
+
+
+def test_missing_dose():
+    old = [{"name": "druga", "status": "active"}]
+    new = [{"name": "druga", "status": "active"}]
+
+    conflicts = detect_conflicts(new, old)
+
+    assert len(conflicts) == 0
