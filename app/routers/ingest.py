@@ -29,6 +29,20 @@ async def ingest_medications(
     old_meds = previous["medications"] if previous else []
 
     conflicts = detect_conflicts(data["medications"], old_meds)
+  
+    for conflict in conflicts:
+        conflict_doc = {
+            "patient_id": patient_id,
+            "type": conflict["type"],
+            "medications": conflict["medications"],
+            "sources": [snapshot.source],
+            "status": "unresolved",
+            "created_at": datetime.now(timezone.utc)
+        }
+
+    await db["conflicts"].insert_one(conflict_doc)
+
+    
 
 
     await db["medication_snapshots"].insert_one(data)
