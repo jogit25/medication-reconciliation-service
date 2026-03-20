@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timezone,timedelta
 from app.db.database import get_db
 from bson import ObjectId
@@ -19,16 +19,26 @@ async def resolve_conflict(
         "resolved_at": datetime.now(timezone.utc)
     }
 
-    await db["conflicts"].update_one(
-        {"_id": ObjectId(conflict_id)},
+    try:
+        obj_id = ObjectId(conflict_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid conflict ID")
+
+    result = await db["conflicts"].update_one(
+        {"_id": obj_id},
         {"$set": update_data}
     )
 
-    return {
-        "message": "Conflict resolved",
-        "conflict_id": conflict_id
-    }
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Conflict not found")
 
+    return{
+         
+    "message": "Conflict resolved",
+        "conflict_id": conflict_id
+    } 
+
+   
 @router.get("/reports/unresolved-conflicts/{clinic}")
 async def get_unresolved_conflicts(clinic: str, db=Depends(get_db)):
 
@@ -79,4 +89,9 @@ async def get_high_conflicts(db=Depends(get_db)):
 
     results = await db["conflicts"].aggregate(pipeline).to_list(length=None)
 
-    return results
+    return {
+    "patients": [
+        {"patient_id": r["_id"], "conflict_count": r["count"]}
+        for r in results
+    ]
+}
