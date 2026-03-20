@@ -40,7 +40,7 @@ async def ingest_medications(
             "created_at": datetime.now(timezone.utc)
         }
 
-    await db["conflicts"].insert_one(conflict_doc)
+        await db["conflicts"].insert_one(conflict_doc)
 
     
 

@@ -6,7 +6,5 @@ from app.models.enums import SourceEnum
 
 
 class MedicationSnapshot(BaseModel):
-    patient_id: str
     source: SourceEnum
     medications: List[Medication]
-    timestamp: datetime

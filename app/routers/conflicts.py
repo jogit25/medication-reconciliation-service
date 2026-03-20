@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
-from datetime import datetime, timezone
+from datetime import datetime, timezone,timedelta
 from app.db.database import get_db
+from bson import ObjectId
 
 router = APIRouter()
 
@@ -19,7 +20,7 @@ async def resolve_conflict(
     }
 
     await db["conflicts"].update_one(
-        {"_id": conflict_id},
+        {"_id": ObjectId(conflict_id)},
         {"$set": update_data}
     )
 
@@ -27,3 +28,55 @@ async def resolve_conflict(
         "message": "Conflict resolved",
         "conflict_id": conflict_id
     }
+
+@router.get("/reports/unresolved-conflicts/{clinic}")
+async def get_unresolved_conflicts(clinic: str, db=Depends(get_db)):
+
+    pipeline = [
+        {
+            "$match": {
+                "status": "unresolved",
+                "sources": clinic
+            }
+        },
+        {
+            "$group": {
+                "_id": "$patient_id"
+            }
+        }
+    ]
+
+    results = await db["conflicts"].aggregate(pipeline).to_list(length=None)
+
+    return {
+        "patients": [r["_id"] for r in results]
+    }
+
+
+@router.get("/reports/high-conflicts")
+async def get_high_conflicts(db=Depends(get_db)):
+
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+
+    pipeline = [
+        {
+            "$match": {
+                "created_at": {"$gte": thirty_days_ago}
+            }
+        },
+        {
+            "$group": {
+                "_id": "$patient_id",
+                "count": {"$sum": 1}
+            }
+        },
+        {
+            "$match": {
+                "count": {"$gte": 2}
+            }
+        }
+    ]
+
+    results = await db["conflicts"].aggregate(pipeline).to_list(length=None)
+
+    return results
